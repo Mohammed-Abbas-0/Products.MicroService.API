@@ -1,0 +1,257 @@
+# # version: "3.8"
+
+# # services:
+# #   mysql:
+# #     image: mysql:latest
+# #     container_name: mysql
+# #     environment:
+# #       MYSQL_ROOT_PASSWORD: admin
+# #       # السطر اللي تحت ده هو حل المشكلة الأساسي
+# #       MYSQL_ROOT_HOST: "%"
+# #       MYSQL_DATABASE: products_db # اختياري: لإنشاء قاعدة بيانات فور التشغيل
+# #     ports:
+# #       - "3306:3306"
+# #     volumes:
+# #       - ./mysql-init/db.sql:/docker-entrypoint-initdb.d/db.sql
+# #     networks:
+# #       - productmicroservice-network
+# #     healthcheck:
+# #       # تم تعديل الـ test ليستخدم الباسورد عشان يتأكد إن السيرفر شغال تمام
+# #       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-padmin"]
+# #       interval: 5s
+# #       timeout: 5s
+# #       retries: 10
+
+# #   postgres:
+# #     image: postgres:16.1
+# #     container_name: postgres
+# #     environment:
+# #       POSTGRES_USER: postgres
+# #       POSTGRES_PASSWORD: admin
+# #       POSTGRES_DB: eCommerceUsers
+# #     ports:
+# #       - "5432:5432"
+# #     volumes:
+# #       - ./postgres-init/db.sql:/docker-entrypoint-initdb.d/db.sql
+# #     networks:
+# #       - productmicroservice-network  
+
+# #   products-microservice:
+# #     image: mohammedabbas098/microservice-repo:1.0
+# #     container_name: products-api
+# #     environment:
+# #       # تأكد إن الـ Connection String في الكود بتستخدم "mysql" كـ Hostname
+# #       MYSQL_HOST: mysql
+# #       MYSQL_PASSWORD: admin
+# #     ports:
+# #       - "8080:8080"
+# #       - "8081:8081"
+# #     depends_on:
+# #       mysql:
+# #         condition: service_healthy # هيخلي الـ API ميتشغلش إلا لما الـ DB تتأكد إنها Ready
+# #     networks:
+# #       - productmicroservice-network
+# #     restart: unless-stopped
+# #   users-microservice:
+# #     image: mohammedabbas098/ecommercerepo:1.0
+# #     container_name: users-api
+# #     environment:
+# #       # تأكد إن الـ Connection String في الكود بتستخدم "mysql" كـ Hostname
+# #       POSTGRES_HOST: postgres
+# #       POSTGRES_PASSWORD: admin
+# #     ports:
+# #       - "9090:9090"
+# #     # depends_on:
+# #     #   postgres:
+# #     #     condition: service_healthy # هيخلي الـ API ميتشغلش إلا لما الـ DB تتأكد إنها Ready
+# #     networks:
+# #       - productmicroservice-network
+# #     restart: unless-stopped
+
+# # networks:
+# #   productmicroservice-network:
+# #     driver: bridge
+
+
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      # WARNING: this allows root from any host — ok for dev, NOT for production
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: products_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init/db.sql:/docker-entrypoint-initdb.d/db.sql:ro
+    networks:
+      - productmicroservice-network
+    healthcheck:
+      # Use CMD-SHELL to allow a single string command (portable)
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -P 3306 -u root -padmin >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16.1
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: eCommerceUsers
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init/db.sql:/docker-entrypoint-initdb.d/db.sql:ro
+    networks:
+      - productmicroservice-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d \"eCommerceUsers\" -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  products-microservice:
+    image: mohammedabbas098/microservice-repo:1.0
+    container_name: products-api
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PASSWORD: admin
+      MYSQL_DATABASE: products_db
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - productmicroservice-network
+    restart: unless-stopped
+
+  users-microservice:
+    image: mohammedabbas098/ecommercerepo:1.0
+    container_name: users-api
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: eCommerceUsers
+      POSTGRES_USER: postgres
+    ports:
+      - "9090:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - productmicroservice-network
+    restart: unless-stopped
+
+networks:
+  productmicroservice-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  pgdata:
+
+
+
+
+# شلنا سطر الـ version عشان الـ warning يختفي
+# services:
+#   # mysql:
+#   #   image: mysql:latest
+#   #   container_name: mysql
+#   #   environment:
+#   #     MYSQL_ROOT_PASSWORD: admin
+#   #     MYSQL_ROOT_HOST: "%"
+#   #     MYSQL_DATABASE: products_db
+#   #   ports:
+#   #     - "3306:3306"
+#   #   volumes:
+#   #     - mysql_data:/var/lib/mysql
+#   #     - ./mysql-init/db.sql:/docker-entrypoint-initdb.d/db.sql:ro
+#   #   networks:
+#   #     - productmicroservice-network
+#   #   healthcheck:
+#   #     test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -padmin >/dev/null 2>&1"]
+#   #     interval: 5s
+#   #     timeout: 5s
+#   #     retries: 10
+#   #   restart: unless-stopped
+
+#   postgres:
+#     image: postgres:16.1
+#     container_name: postgres
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: admin
+#       POSTGRES_DB: eCommerceUsers
+#     ports:
+#       - "5433:5432" # بنربط 5433 بره بـ 5432 جوه عشان لو عندك postgres تانية على جهازك
+#     volumes:
+#       - pgdata:/var/lib/postgresql/data
+#       - ./postgres-init/db.sql:/docker-entrypoint-initdb.d/db.sql:ro
+#     networks:
+#       - productmicroservice-network
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres -d eCommerceUsers"]
+#       interval: 5s
+#       timeout: 5s
+#       retries: 10
+#     restart: unless-stopped
+
+#   # products-microservice:
+#   #   # التعديل السحري هنا: بنقوله ابني من الفولدر الحالي
+#   #   build: 
+#   #     context: . # المسار اللي فيه الـ Dockerfile بتاع الـ Products
+#   #     dockerfile: Dockerfile 
+#   #   container_name: products-api
+#   #   environment:
+#   #     MYSQL_HOST: mysql
+#   #     MYSQL_PASSWORD: admin
+#   #     MYSQL_DATABASE: products_db
+#   #   ports:
+#   #     - "8080:8080"
+#   #   depends_on:
+#   #     mysql:
+#   #       condition: service_healthy
+#   #   networks:
+#   #     - productmicroservice-network
+#   #   restart: unless-stopped
+
+#   users-microservice:
+#     # نفس الكلام هنا: ابني من الفولدر اللي فيه كود الـ Users
+#     build:
+#       context: . # لو ملف الـ Users في فولدر تاني، غير النقطة لمسار الفولدر
+#       dockerfile: Dockerfile
+#     container_name: users-api
+#     environment:
+#       POSTGRES_HOST: postgres
+#       POSTGRES_PASSWORD: admin
+#       POSTGRES_DB: eCommerceUsers
+#       POSTGRES_USER: postgres
+#     ports:
+#       - "9090:9090"
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#     networks:
+#       - productmicroservice-network
+#     restart: unless-stopped
+
+# networks:
+#   productmicroservice-network:
+#     driver: bridge
+
+# volumes:
+#   mysql_data:
+#   pgdata:

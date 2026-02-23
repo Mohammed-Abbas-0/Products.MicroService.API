@@ -1,0 +1,44 @@
+# docker run -d --network productmicroservice-network --name mysql-container 
+# -p 3306:3306 -e MYSQL_ROOT_PASSWORD=admin -e MYSQL_DATABASE=ecommerceproductsdatabase mysql:latest
+
+# docker run -d --network productmicroservice-network --name microservice-app 
+# -p 8080:8080 -p 8081:8081 -e MYSQL_HOST=mysql-container -e MYSQL_PASSWORD=admin mohammedabbas098/microservice-repo:1.0   
+
+version: '3.8'
+
+services:
+  mysql-container:
+    image: mysql:latest
+    container_name: mysql-container
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: ecommerceproductsdatabase
+    volumes:
+      - mysql_data:/var/lib/mysql  # خليناها Underscore
+      - ./mysql-init/db.sql:/docker-entrypoint-initdb.d/db.sql:ro # حركة ذكية جداً للـ Initialization
+    networks:
+      - productmicroservice-network
+
+  microservice-app:
+    image: mohammedabbas098/microservice-repo:1.0
+    container_name: microservice-app
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    depends_on:
+      - mysql-container 
+    environment:
+      MYSQL_HOST: mysql-container
+      MYSQL_PASSWORD: admin
+    networks:
+      - productmicroservice-network
+
+volumes:
+  mysql_data: # لازم تكون مطابقة للي فوق بالظبط
+
+networks:
+  productmicroservice-network:
+    driver: bridge
