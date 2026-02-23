@@ -4,7 +4,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 USER $APP_UID
 WORKDIR /app
-EXPOSE 8080
+EXPOSE 8081
 EXPOSE 8081
 
 
@@ -31,4 +31,7 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 ENV MYSQL_HOST=localhost
 ENV MYSQL_PASSWORD=admin
+ENV MYSQL_PORT=3306
+ENV MYSQL_DB=ecommerceproductsdatabase
+ENV MYSQL_USER=root
 ENTRYPOINT ["dotnet", "Products.MicroService.API.dll"]
