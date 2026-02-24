@@ -5,6 +5,8 @@ using DataLogicLayer.DTO;
 using DataLogicLayer.ServiceContracts;
 using FluentValidation;
 using System.Linq.Expressions;
+using FValidationResult = FluentValidation.Results.ValidationResult;
+
 
 namespace DataLogicLayer.Services;
 internal class ProductService : IProductService
@@ -20,7 +22,6 @@ internal class ProductService : IProductService
         _mapper = mapper;
         _productsRepository = productsRepository;
     }
-
     public async Task<ProductResponse> AddProduct(ProductAddRequest productAddRequest)
     {
         if (productAddRequest is null)
@@ -28,34 +29,85 @@ internal class ProductService : IProductService
             throw new ArgumentNullException(nameof(productAddRequest));
         }
         // Validate the request
-        ValidationResult validationResult =  await _addValidator.ValidateAsync(productAddRequest);
-        
-        //if
-    
+        FValidationResult validationResult =  await _addValidator.ValidateAsync(productAddRequest);
+
+        if (!validationResult.IsValid)
+        {
+            string errors = string.Join(", ", validationResult.Errors.Select(idx=>idx.ErrorMessage));
+            throw new ArgumentException(errors);
+        }
+        Product product = _mapper.Map<Product>(productAddRequest);
+        await _productsRepository.AddProduct(product);
+
+        var response = _mapper.Map<ProductResponse>(product);
+        return response;
     }
 
     public async Task<bool> DeleteProduct(Guid id)
     {
-
+        var product = await _productsRepository.GetProductByConditionAsync(p => p.ProductId == id);
+        if (product is null)
+        {
+            throw new ArgumentException($"Product with id {id} does not exist.");
+        }
+        return await _productsRepository.DeleteProduct(id);
     }
 
     public async Task<ProductResponse> GetProductByCondition(Expression<Func<Product, bool>> expression)
     {
-        throw new NotImplementedException();
+        Product product = await _productsRepository.GetProductByConditionAsync(expression);
+        if (product is null)
+            return new ProductResponse();
+        var response = _mapper.Map<ProductResponse>(product);
+        return response;
     }
 
     public async Task<List<ProductResponse>> GetProducts()
     {
-        throw new NotImplementedException();
+        var products = await _productsRepository.GetAllProductsAsync();
+        if (products is null || !products.Any())
+        {
+            return new List<ProductResponse>();
+        }
+
+        IEnumerable<ProductResponse> productResponses = _mapper.Map<IEnumerable<ProductResponse>>(products);
+        return productResponses.ToList();
     }
 
     public async Task<List<ProductResponse>> GetProductsByCondition(Expression<Func<Product, bool>> expression)
     {
-        throw new NotImplementedException();
+        var products = await _productsRepository.GetAllProductsByConditionAsync(expression);
+        if (products is null || !products.Any())
+        {
+            return new List<ProductResponse>();
+        }
+        var responses = _mapper.Map<IEnumerable<ProductResponse>>(products);
+        return responses.ToList();
     }
 
-    public Task<ProductResponse> UpdateProduct(ProductUpdateRequest productAddRequest)
+    public async Task<ProductResponse> UpdateProduct(ProductUpdateRequest productUpdateRequest)
     {
-        throw new NotImplementedException();
+        if (productUpdateRequest is null)
+        {
+            throw new ArgumentNullException(nameof(productUpdateRequest));
+        }
+        var existingProduct = await _productsRepository.GetProductByConditionAsync(p => p.ProductId == productUpdateRequest.ProductId);
+        if (existingProduct is null)
+        {
+            throw new ArgumentException($"Product with id {productUpdateRequest.ProductId} does not exist.");
+        }
+        // Validate the request
+        FValidationResult validationResult = await _updateValidator.ValidateAsync(productUpdateRequest);
+
+        if (!validationResult.IsValid)
+        {
+            string errors = string.Join(", ", validationResult.Errors.Select(idx => idx.ErrorMessage));
+            throw new ArgumentException(errors);
+        }
+        Product product = _mapper.Map<Product>(productUpdateRequest);
+        await _productsRepository.UpdateProduct(product);
+
+        var response = _mapper.Map<ProductResponse>(product);
+        return response;
     }
 }

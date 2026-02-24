@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Routing;
+﻿using DataLogicLayer.ServiceContracts;
+using Microsoft.AspNetCore.Routing;
 
 namespace Products.MicroService.API.APIEndPoint;
 
 public static class ProductAPIEndPoint
 {
-    //public static IEndpointRouteBuilder MapProductAPIEndPoint(this IEndpointRouteBuilder endpoints)
-    //{
-    //    //endpoints.MapGroup("/api/products",async(IProductService) )
-    //    //    .MapProductsEndpoints();
-    //    //return endpoints;
-    //}
+    public static IEndpointRouteBuilder MapProductAPIEndPoint(this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapGroup("/api/products", async (IProductService productservice) => { )
+            .MapProductsEndpoints();
+    }
+        return endpoints;
+    }
 }

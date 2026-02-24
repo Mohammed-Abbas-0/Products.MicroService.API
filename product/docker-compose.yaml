@@ -121,7 +121,7 @@ services:
     restart: unless-stopped
 
   products-microservice:
-    image: mohammedabbas098/microservice-repo:1.0
+    image: mohammedabbas098/products_microservice_hub:1.0
     container_name: products-api
     environment:
       MYSQL_HOST: mysql
@@ -138,7 +138,7 @@ services:
     restart: unless-stopped
 
   users-microservice:
-    image: mohammedabbas098/ecommercerepo:1.0
+    image: mohammedabbas098/users_microservice_hub:1.0
     container_name: users-api
     environment:
       POSTGRES_HOST: postgres
