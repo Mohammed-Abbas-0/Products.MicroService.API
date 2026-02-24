@@ -18,7 +18,12 @@
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "MYSQL_HOST": "localhost",
+        "MYSQL_PASSWORD": "admin",
+        "MYSQL_PORT": "3306",
+        "MYSQL_DB": "ecommerceproductsdatabase",
+        "MYSQL_USER": "root"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7265;http://localhost:5083"

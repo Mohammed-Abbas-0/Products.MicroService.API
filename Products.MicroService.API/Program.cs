@@ -1,6 +1,5 @@
 using DataAccessLayer;
 using DataLogicLayer;
-using FluentValidation.AspNetCore;
 using Products.MicroService.API.APIEndPoint;
 using Products.MicroService.API.Middlewares;
 
@@ -11,9 +10,14 @@ builder.Services.AddBusinessLogicLayer();
 
 builder.Services.AddControllers();
 
-// FluentValidation
-builder.Services.AddFluentValidationAutoValidation();
-
+//  "category": "Electronics",
+// ??? ???? ????????? ?? int
+//  "category": 1,  ????? ??? ???
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+{
+    options.SerializerOptions.Converters.Add(
+        new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
 var app = builder.Build();
 
 app.UseExceptionHandlingMiddleware();

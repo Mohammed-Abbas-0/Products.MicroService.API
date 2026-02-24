@@ -1,6 +1,7 @@
 ﻿using DataAccessLayer.Context;
 using DataAccessLayer.Entities;
 using DataAccessLayer.RepositoriesContracts;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace DataAccessLayer.Repositories;
@@ -9,40 +10,77 @@ public class ProductsRepository : IProductsRepository
 {
     private readonly AppDbContext _dbContext;
 
-    public ProductsRepository(AppDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
+    public ProductsRepository(AppDbContext dbContext) => _dbContext = dbContext;
+    
+
     public async Task<Product> AddProduct(Product product)
     {
-        _dbContext.Products.Add(product);
-        await  _dbContext.SaveChangesAsync();
+        await _dbContext.Products.AddAsync(product);
+        await _dbContext.SaveChangesAsync();
         return product;
     }
 
     public async Task<bool> DeleteProduct(Guid productId)
     {
-        throw new NotImplementedException();
+        var rowsAffected = await _dbContext.Products
+            .Where(x => x.ProductId == productId)
+            .ExecuteDeleteAsync();
+
+        return rowsAffected > 0;
     }
 
+    // 🔥 GET ALL
     public async Task<IEnumerable<Product>> GetAllProductsAsync()
     {
-        throw new NotImplementedException();
+        return await _dbContext.Products
+            .AsNoTracking()
+            .ToListAsync();
     }
 
-    public async Task<IEnumerable<Product>> GetAllProductsByConditionAsync(Expression<Func<Product, bool>> conditionExpression, Func<IQueryable<Product>, IQueryable<Product>>? include = null, bool asNoTracking = false)
+    // 🔥 GET ALL WITH CONDITION
+    public async Task<IEnumerable<Product>> GetAllProductsByConditionAsync(
+        Expression<Func<Product, bool>> conditionExpression,
+        Func<IQueryable<Product>, IQueryable<Product>>? include = null,
+        bool asNoTracking = false)
     {
-        throw new NotImplementedException();
+        IQueryable<Product> query = _dbContext.Products;
+
+        if (asNoTracking)
+            query = query.AsNoTracking();
+
+        if (include != null)
+            query = include(query);
+
+        return await query
+            .Where(conditionExpression)
+            .ToListAsync();
     }
 
-    public async Task<Product> GetProductByConditionAsync(Expression<Func<Product, bool>> conditionExpression, Func<IQueryable<Product>, IQueryable<Product>>? include = null, bool asNoTracking = false)
+    // 🔥 GET SINGLE
+    public async Task<Product?> GetProductByConditionAsync(
+        Expression<Func<Product, bool>> conditionExpression,
+        Func<IQueryable<Product>, IQueryable<Product>>? include = null,
+        bool asNoTracking = false)
     {
-        throw new NotImplementedException();
+        IQueryable<Product> query = _dbContext.Products;
+
+        if (asNoTracking)
+            query = query.AsNoTracking();
+
+        if (include != null)
+            query = include(query);
+
+        return await query
+            .FirstOrDefaultAsync(conditionExpression);
     }
 
+    // 🔥 UPDATE
     public async Task<Product> UpdateProduct(Product product)
     {
-        throw new NotImplementedException();
+        _dbContext.Products.Update(product);
+        await _dbContext.SaveChangesAsync();
+        return product;
     }
 }
+
 
